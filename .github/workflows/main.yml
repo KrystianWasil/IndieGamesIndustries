@@ -1,52 +1,37 @@
-name: Build
+name: Build and Test Unity Project
 
 on:
-  pull_request: {}
-  push: { branches: [main] }
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    name: ${{ matrix.targetPlatform }}
+    name: Build Windows Player
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        targetPlatform:
-          - StandaloneOSX # Build a macOS standalone (Intel 64-bit).
-          - StandaloneWindows # Build a Windows standalone.
-          - StandaloneWindows64 # Build a Windows 64-bit standalone.
-          - StandaloneLinux64 # Build a Linux 64-bit standalone.
-          - iOS # Build an iOS player.
-          - Android # Build an Android .apk standalone app.
-          - WebGL # WebGL.
 
     steps:
-      # Checkout
-      - name: Checkout
+      # Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          lfs: true
 
-      # Cache
-      - name: Cache
-        uses: actions/cache@v2
+      # Set up Unity
+      - name: Set up Unity
+        uses: game-ci/unity-action@v2
         with:
-          path: Library
-          key: Library-${{ matrix.targetPlatform }}
-          restore-keys: Library-
+          version: '2020.3.11f1' # Wersja Unity, którą używasz
 
-      # Build
-      - name: Build
-        uses: game-ci/unity-builder@v2
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          targetPlatform: ${{ matrix.targetPlatform }}
+      # Build project for Windows
+      - name: Build for Windows
+        run: |
+          unity -batchmode -quit -projectPath . -buildWindows64Player "build/Windows/MyGame.exe"
 
-      # Upload Build
-      - name: Upload Build
+      # Upload build for testing
+      - name: Upload Build for Testing
         uses: actions/upload-artifact@v2
         with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
+          name: Windows-Build
+          path: build/Windows/MyGame.exe
