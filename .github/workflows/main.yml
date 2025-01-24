@@ -20,7 +20,7 @@ on:
 jobs:
   buildWithWindows:
     name: Build for StandaloneWindows and StandaloneWindows64
-    runs-on: windows-latest  # Możesz zmienić na 'windows-2019' jeśli tego potrzebujesz
+    runs-on: windows-latest  
     outputs:
       buildVersion: ${{ steps.buildStep.outputs.buildVersion }}
     strategy:
@@ -30,18 +30,18 @@ jobs:
           - StandaloneWindows64
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Build Unity Project
         id: buildStep
-        uses: game-ci/unity-builder@v2
+        uses: game-ci/unity-builder@v4
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
           unityVersion: 2022.3.10f1  # Określamy wersję Unity
           buildMethod: Cgs.Editor.BuildCgs.BuildOptions
       - name: Upload Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cgs-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}
@@ -59,13 +59,13 @@ jobs:
           fetch-depth: 0
       - name: Build Unity Project
         id: buildStep
-        uses: game-ci/unity-builder@v2
+        uses: game-ci/unity-builder@v4
         with:
           targetPlatform: StandaloneOSX
           unityVersion: 2022.3.10f1  # Określamy wersję Unity
           buildMethod: Cgs.Editor.BuildCgs.BuildOptions
       - name: Upload Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cgs-StandaloneOSX
           path: build/StandaloneOSX
