@@ -1,0 +1,44 @@
+name: Build Unity Project on Windows
+
+on:
+  push:
+    branches:
+      - develop  # Możesz zmienić na 'main' lub inną gałąź
+    paths:
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+  pull_request:
+    types:
+      - opened
+    branches:
+      - main
+    paths:
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+  workflow_dispatch:  # Pozwala na ręczne uruchomienie workflow
+    inputs:
+      workflow_mode:
+        description: 'Specify the build mode'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: windows-latest  # Ustawienie systemu Windows
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Unity
+        uses: game-ci/unity-setup@v2
+        with:
+          unityVersion: 2022.3.10f1  # Zmień na wersję Unity, której używasz
+          license: ${{ secrets.UNITY_LICENSE }}  # Ustaw sekretną zmienną UNITY_LICENSE
+
+      - name: Build Unity Project for Windows
+        uses: game-ci/unity-builder@v2
+        with:
+          targetPlatform: StandaloneWindows64  # Budowanie na platformie Windows
