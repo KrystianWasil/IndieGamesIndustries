@@ -1,44 +1,71 @@
-name: Build Unity Project on Windows
+name: Build Unity Project for Windows and macOS
 
 on:
   push:
     branches:
-      - develop  # Możesz zmienić na 'main' lub inną gałąź
+      - main
+      - develop
     paths:
       - 'Assets/**'
       - 'Packages/**'
       - 'ProjectSettings/**'
   pull_request:
-    types:
-      - opened
     branches:
       - main
     paths:
       - 'Assets/**'
       - 'Packages/**'
       - 'ProjectSettings/**'
-  workflow_dispatch:  # Pozwala na ręczne uruchomienie workflow
-    inputs:
-      workflow_mode:
-        description: 'Specify the build mode'
-        required: false
-        default: ''
 
 jobs:
-  build:
-    runs-on: windows-latest  # Ustawienie systemu Windows
-
+  buildWithWindows:
+    name: Build for StandaloneWindows and StandaloneWindows64
+    runs-on: windows-latest  # Możesz zmienić na 'windows-2019' jeśli tego potrzebujesz
+    outputs:
+      buildVersion: ${{ steps.buildStep.outputs.buildVersion }}
+    strategy:
+      matrix:
+        targetPlatform:
+          - StandaloneWindows
+          - StandaloneWindows64
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
-
-      - name: Setup Unity
-        uses: game-ci/unity-setup@v2
         with:
-          unityVersion: 2022.3.10f1  # Zmień na wersję Unity, której używasz
-          license: ${{ secrets.UNITY_LICENSE }}  # Ustaw sekretną zmienną UNITY_LICENSE
-
-      - name: Build Unity Project for Windows
+          fetch-depth: 0
+      - name: Build Unity Project
+        id: buildStep
         uses: game-ci/unity-builder@v2
         with:
-          targetPlatform: StandaloneWindows64  # Budowanie na platformie Windows
+          targetPlatform: ${{ matrix.targetPlatform }}
+          unityVersion: 2022.3.10f1  # Określamy wersję Unity
+          buildMethod: Cgs.Editor.BuildCgs.BuildOptions
+      - name: Upload Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: cgs-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
+
+  buildWithMac:
+    name: Build for StandaloneOSX
+    runs-on: macos-latest
+    needs: [buildWithWindows]
+    outputs:
+      buildVersion: ${{ steps.buildStep.outputs.buildVersion }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Build Unity Project
+        id: buildStep
+        uses: game-ci/unity-builder@v2
+        with:
+          targetPlatform: StandaloneOSX
+          unityVersion: 2022.3.10f1  # Określamy wersję Unity
+          buildMethod: Cgs.Editor.BuildCgs.BuildOptions
+      - name: Upload Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: cgs-StandaloneOSX
+          path: build/StandaloneOSX
