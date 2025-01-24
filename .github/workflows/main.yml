@@ -1,23 +1,52 @@
-name: Build Unity Game
+name: Build
 
 on:
-  push:
-    branches:
-      - main
+  pull_request: {}
+  push: { branches: [main] }
 
 jobs:
   build:
-    runs-on: macos-latest
+    name: ${{ matrix.targetPlatform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        targetPlatform:
+          - StandaloneOSX # Build a macOS standalone (Intel 64-bit).
+          - StandaloneWindows # Build a Windows standalone.
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          - StandaloneLinux64 # Build a Linux 64-bit standalone.
+          - iOS # Build an iOS player.
+          - Android # Build an Android .apk standalone app.
+          - WebGL # WebGL.
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      # Checkout
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          lfs: true
 
-    - name: Set up Unity
-      uses: game-ci/unity-actions/setup@v2
-      with:
-        version: 6000.0.34f1
+      # Cache
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}
+          restore-keys: Library-
 
-    - name: Build for Windows
-      run: |
-        unity -quit -batchmode -nographics -logFile -projectPath $(pwd) -buildWindows64Player "$(pwd)/Build/Game.exe"
+      # Build
+      - name: Build
+        uses: game-ci/unity-builder@v2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+
+      # Upload Build
+      - name: Upload Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
