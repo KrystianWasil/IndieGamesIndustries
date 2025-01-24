@@ -1,70 +1,23 @@
-name: Build Unity Project for Windows and macOS
+name: Build Unity Game
 
 on:
   push:
     branches:
-      - develop
-    paths:
-      - 'Assets/**'
-      - 'Packages/**'
-      - 'ProjectSettings/**'
-  pull_request:
-    types:
-      - opened
-    branches:
       - main
-    paths:
-      - 'Assets/**'
-      - 'Packages/**'
-      - 'ProjectSettings/**'
-  release:
-    types:
-      - published
-  workflow_dispatch:
-    inputs:
-      workflow_mode:
-        description: '[StandaloneWindows, StandaloneWindows64, StandaloneOSX]'
-        required: false
-        default: ''
 
 jobs:
-  buildWithWindows:
-    name: Build for Windows
-    runs-on: windows-2019
+  build:
+    runs-on: macos-latest
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Create LFS file list
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-      - name: Restore LFS cache
-        uses: actions/cache@v3
-        id: lfs-cache
-        with:
-          path: .git/lfs
-          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
-      - name: Git LFS Pull
-        run: |
-          git lfs pull
-          git add .
-          git reset --hard
-      - uses: actions/cache@v3
-        with:
-          path: Library
-          key: Library-buildWindows-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
-          restore-keys: Library-buildWindows-
-      - name: Build Unity Project
-        id: buildStep
-        uses: game-ci/unity-builder@v2
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
-        with:
-          targetPlatform: StandaloneWindows64
-      - name: Upload Build
-        uses: actions/upload-artifact@v3
-        with:
-          name: cgs-StandaloneWindows64
-          path: build/StandaloneWindows64
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Unity
+      uses: game-ci/unity-actions/setup@v2
+      with:
+        version: 6000.0.34f1
+
+    - name: Build for Windows
+      run: |
+        unity -quit -batchmode -nographics -logFile -projectPath $(pwd) -buildWindows64Player "$(pwd)/Build/Game.exe"
