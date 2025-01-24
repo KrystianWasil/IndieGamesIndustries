@@ -3,69 +3,68 @@ name: Build Unity Project for Windows and macOS
 on:
   push:
     branches:
-      - main
       - develop
     paths:
       - 'Assets/**'
       - 'Packages/**'
       - 'ProjectSettings/**'
   pull_request:
+    types:
+      - opened
     branches:
       - main
     paths:
       - 'Assets/**'
       - 'Packages/**'
       - 'ProjectSettings/**'
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      workflow_mode:
+        description: '[StandaloneWindows, StandaloneWindows64, StandaloneOSX]'
+        required: false
+        default: ''
 
 jobs:
   buildWithWindows:
-    name: Build for StandaloneWindows and StandaloneWindows64
-    runs-on: windows-latest  
-    outputs:
-      buildVersion: ${{ steps.buildStep.outputs.buildVersion }}
-    strategy:
-      matrix:
-        targetPlatform:
-          - StandaloneWindows
-          - StandaloneWindows64
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Build Unity Project
-        id: buildStep
-        uses: game-ci/unity-builder@v4
-        with:
-          targetPlatform: ${{ matrix.targetPlatform }}
-          unityVersion: 2022.3.10f1  # Określamy wersję Unity
-          buildMethod: Cgs.Editor.BuildCgs.BuildOptions
-      - name: Upload Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: cgs-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
-
-  buildWithMac:
-    name: Build for StandaloneOSX
-    runs-on: macos-latest
-    needs: [buildWithWindows]
-    outputs:
-      buildVersion: ${{ steps.buildStep.outputs.buildVersion }}
+    name: Build for Windows
+    runs-on: windows-2019
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Create LFS file list
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+      - name: Restore LFS cache
+        uses: actions/cache@v3
+        id: lfs-cache
+        with:
+          path: .git/lfs
+          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
+      - name: Git LFS Pull
+        run: |
+          git lfs pull
+          git add .
+          git reset --hard
+      - uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-buildWindows-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-buildWindows-
       - name: Build Unity Project
         id: buildStep
-        uses: game-ci/unity-builder@v4
+        uses: game-ci/unity-builder@v2
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         with:
-          targetPlatform: StandaloneOSX
-          unityVersion: 2022.3.10f1  # Określamy wersję Unity
-          buildMethod: Cgs.Editor.BuildCgs.BuildOptions
+          targetPlatform: StandaloneWindows64
       - name: Upload Build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: cgs-StandaloneOSX
-          path: build/StandaloneOSX
+          name: cgs-StandaloneWindows64
+          path: build/StandaloneWindows64
