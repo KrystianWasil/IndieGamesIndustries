@@ -4,29 +4,35 @@ on:
   push:
     branches:
       - main
+      - develop  # Możesz dostosować, aby działało na innych gałęziach
+  pull_request:
+    branches:
+      - main
       - develop
 
 jobs:
   build:
-    runs-on: windows-latest
-
+    runs-on: windows-latest  # Używa maszyn wirtualnych GitHub z systemem Windows
+    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  # Klonuje repozytorium
 
       - name: Set up Unity
         run: |
-          # Pobierz Unity i zainstaluj (możesz zaktualizować do odpowiedniej wersji Unity)
+          # Pobierz Unity i zainstaluj w trybie cichym
           curl -L https://download.unity3d.com/download_unity/2022.3.3f1/UnitySetup64.exe -o UnitySetup64.exe
-          start /wait UnitySetup64.exe /S /D=C:\Unity
+          # Uruchom instalator Unity w trybie cichym
+          & "UnitySetup64.exe" /S /D=C:\Unity
           
-          # Aktywacja licencji Unity Professional za pomocą numeru seryjnego
+          # Aktywacja Unity Professional za pomocą numeru seryjnego
           echo ${{ secrets.UNITY_SERIAL }} > unity_serial.txt
-          C:\Unity\Editor\Unity.exe -batchmode -nographics -quit -serialFile unity_serial.txt -logFile
+          & "C:\Unity\Editor\Unity.exe" -quit -batchmode -serialFile unity_serial.txt -logFile
 
       - name: Build Unity project
         run: |
-          C:\Unity\Editor\Unity.exe -quit -batchmode -projectPath . -buildWindows64Player Build/WindowsGame.exe
+          # Budowanie projektu Unity
+          & "C:\Unity\Editor\Unity.exe" -quit -batchmode -projectPath . -buildWindows64Player Build/WindowsGame.exe
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v3
