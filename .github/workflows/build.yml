@@ -1,0 +1,34 @@
+name: Build Unity Project
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Unity
+        run: |
+          # Pobierz Unity i zainstaluj (możesz zaktualizować do odpowiedniej wersji Unity)
+          curl -L https://download.unity3d.com/download_unity/2022.3.3f1/UnitySetup64.exe -o UnitySetup64.exe
+          start /wait UnitySetup64.exe /S /D=C:\Unity
+          
+          # Aktywacja licencji Unity Professional za pomocą numeru seryjnego
+          echo ${{ secrets.UNITY_SERIAL }} > unity_serial.txt
+          C:\Unity\Editor\Unity.exe -batchmode -nographics -quit -serialFile unity_serial.txt -logFile
+
+      - name: Build Unity project
+        run: |
+          C:\Unity\Editor\Unity.exe -quit -batchmode -projectPath . -buildWindows64Player Build/WindowsGame.exe
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows-Build
+          path: Build/WindowsGame.exe
